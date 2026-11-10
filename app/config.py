@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     aws_access_key_id:str=''
     aws_secret_access_key:str=''
     s3_bucket:str=''
-    database_url:str=''  # Render PostgreSQL External Database URL
+    database_url:str=''  # Neon PostgreSQL connection URL (or another PostgreSQL provider)
     bedrock_embed_model:str='amazon.titan-embed-text-v2:0'
     bedrock_chat_model:str='amazon.nova-lite-v1:0'
     embed_dim:int=1024

@@ -46,7 +46,7 @@ The project demonstrates how to connect document ingestion, grounded question an
 | Embeddings | Amazon Bedrock — Titan Text Embeddings V2 | Document and query vectors (1,024 dimensions in this project) |
 | Vector database | Pinecone | Semantic retrieval and document chunk indexing |
 | Object storage | Amazon S3 | Original uploaded documents |
-| Relational database | PostgreSQL on Render | Document metadata, conversations, approvals, feedback, audit |
+| Relational database | PostgreSQL on Neon | Document metadata, conversations, approvals, feedback, audit |
 | Observability | GlassFlow Rius | Optional AI workflow tracing |
 | Containerization | Docker | Portable application runtime |
 | Image registry | Amazon ECR | Private Docker image storage |
@@ -67,7 +67,7 @@ flowchart TD
     ING -->|Read file| S3
     ING -->|Create embeddings| TITAN[Bedrock Titan Embeddings V2]
     ING -->|Upsert vectors| PC[Pinecone]
-    ING --> DB[(Render PostgreSQL)]
+    ING --> DB[(Neon PostgreSQL)]
 
     U -->|Ask question| API
     API --> GR[LangGraph RAG + guardrails]
@@ -138,7 +138,7 @@ flowchart LR
 - Docker Desktop or Docker Engine for container testing
 - AWS account with access to S3 and the required Amazon Bedrock models
 - Pinecone account and API key
-- PostgreSQL database (the project uses Render)
+- PostgreSQL database (the project uses Neon)
 - Optional GlassFlow Rius account
 - For deployment: ECR repository, EC2 Linux instance, GitHub repository, and a registered self-hosted GitHub Actions runner
 
@@ -189,7 +189,7 @@ BEDROCK_CHAT_MODEL=amazon.nova-lite-v1:0
 EMBED_DIM=1024
 
 PINECONE_API_KEY=your-pinecone-key
-PINECONE_INDEX_NAME=atlas-rag-index
+PINECONE_INDEX_NAME=apex-enterprise-ai
 PINECONE_CLOUD=aws
 PINECONE_REGION=us-east-1
 
@@ -199,7 +199,7 @@ HITL_ENABLED=true
 MEMORY_TURNS=6
 
 RIUS_API_KEY=
-RIUS_SERVICE_NAME=atlas-enterprise-ai
+RIUS_SERVICE_NAME=apex-enterprise-ai
 RIUS_DISABLED=false
 RIUS_CAPTURE_CONTENT=false
 ```
@@ -250,14 +250,14 @@ For cloud deployment, replace or supplement these with your exact deployed HTTPS
 Build the image:
 
 ```bash
-docker build -t atlas-enterprise-ai:local .
+docker build -t apex-enterprise-ai:local .
 ```
 
 Run it locally:
 
 ```bash
-docker run --rm --name atlas-enterprise-ai \
-  --env-file .env -p 8000:8000 atlas-enterprise-ai:local
+docker run --rm --name apex-enterprise-ai \
+  --env-file .env -p 8000:8000 apex-enterprise-ai:local
 ```
 
 On Linux, if using an AWS profile instead of environment credentials, provide credentials through a secure supported mechanism. For the EC2 deployment, the container should use the instance role's credentials.
@@ -268,11 +268,11 @@ This repository's intended deployment pattern uses **GitHub Actions + Amazon ECR
 
 ### AWS resources
 
-1. **ECR:** Create a private repository named `atlas-enterprise-ai` (or choose your own name).
+1. **ECR:** Create a private repository named `apex-enterprise-ai` (or choose your own name).
 2. **EC2:** Launch a Linux instance with Docker, AWS CLI, and a GitHub Actions self-hosted runner. Restrict network access and protect the runner.
 3. **EC2 IAM role:** Grant the permissions required to pull ECR images and invoke the application services (Bedrock and the specific S3 bucket). Avoid permanent access keys on the instance.
 4. **GitHub IAM role:** Configure GitHub Actions OIDC for temporary credentials, with permissions to push to the target ECR repository and a trust policy restricted to your repository/branch.
-5. **Runtime configuration:** Store the application environment securely on EC2 (for a basic demo, `/opt/atlas/.env` with restrictive permissions; prefer a managed secret store in production).
+5. **Runtime configuration:** Store the application environment securely on EC2 (for a basic demo, `/opt/apex/.env` with restrictive permissions; prefer a managed secret store in production).
 
 ### GitHub Actions configuration
 
@@ -281,7 +281,7 @@ Add the following repository **Variables** under `Settings → Secrets and varia
 | Name | Example |
 | --- | --- |
 | `AWS_REGION` | `us-east-1` |
-| `ECR_REPOSITORY_NAME` | `atlas-enterprise-ai` |
+| `ECR_REPOSITORY_NAME` | `apex-enterprise-ai` |
 
 Add this repository **Secret**:
 
@@ -298,7 +298,7 @@ The deployment workflow should:
 3. Authenticate to AWS using OIDC.
 4. Build the Docker image and tag it with `${{ github.sha }}`.
 5. Push the image to ECR.
-6. Run the deployment job on the trusted EC2 runner (`runs-on: [self-hosted, linux, x64, atlas-ec2]`, if that label is registered).
+6. Run the deployment job on the trusted EC2 runner (`runs-on: [self-hosted, linux, x64, apex-ec2]`; configure the runner with this label).
 7. Pull the exact image, replace the container, and verify application health.
 
 Example deployment commands executed **on the EC2 runner**:
@@ -306,11 +306,11 @@ Example deployment commands executed **on the EC2 runner**:
 ```bash
 # IMAGE is the full image URI produced by the build job.
 docker pull "$IMAGE"
-docker rm -f atlas-enterprise-ai || true
+docker rm -f apex-enterprise-ai || true
 docker run -d \
-  --name atlas-enterprise-ai \
+  --name apex-enterprise-ai \
   --restart unless-stopped \
-  --env-file /opt/atlas/.env \
+  --env-file /opt/apex/.env \
   -p 8000:8000 \
   "$IMAGE"
 ```
@@ -321,7 +321,7 @@ docker run -d \
 
 ```bash
 docker ps
-docker logs --tail 100 atlas-enterprise-ai
+docker logs --tail 100 apex-enterprise-ai
 curl --fail http://127.0.0.1:8000/health/live
 curl --fail http://127.0.0.1:8000/health/ready
 ```
@@ -385,11 +385,11 @@ This project intentionally prioritizes understandable implementation over produc
 | `No module named app` | Run commands from the repository root using `python -m uvicorn app.main:app` |
 | Pinecone indexing fails | API key, index region, 1,024-dimension configuration, quota |
 | Bedrock request fails | Model availability, region, IAM permissions, model IDs |
-| Database connection fails | Render external URL, TLS setting, credentials, network access |
+| Database connection fails | Neon connection URL, TLS setting, credentials, network access |
 | GitHub OIDC authentication fails | IAM trust policy, repository name, branch, audience |
 | ECR pull fails on EC2 | Instance IAM role, ECR permissions, region, Docker login |
 | Deployment job stays queued | Self-hosted runner status and runner labels |
-| Container exits immediately | `docker logs atlas-enterprise-ai`, missing environment variables |
+| Container exits immediately | `docker logs apex-enterprise-ai`, missing environment variables |
 | Rius traces are missing | Instrumentation, configuration, API key, network access |
 
 ## Documentation
@@ -419,6 +419,6 @@ Issues and pull requests are welcome where enabled. For substantial changes, des
 
 <div align="center">
 
-**Atlas Enterprise AI** — Practical enterprise RAG engineering, from local development to AWS CI/CD.
+**Apex Enterprise AI** — Practical enterprise RAG engineering, from local development to AWS CI/CD.
 
 </div>

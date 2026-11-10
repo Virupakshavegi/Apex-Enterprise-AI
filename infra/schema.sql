@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS approvals (
 );
 CREATE INDEX IF NOT EXISTS approvals_tenant_idx ON approvals(tenant_id,status);
 
--- Persistent short-term conversation memory (Aurora, no local database).
+-- Persistent short-term conversation memory (Neon PostgreSQL, no local database).
 CREATE TABLE IF NOT EXISTS chat_messages (
  id bigserial PRIMARY KEY,
  tenant_id text NOT NULL,
