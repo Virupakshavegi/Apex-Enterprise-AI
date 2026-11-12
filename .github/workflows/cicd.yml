@@ -1,5 +1,5 @@
 
-name: Atlas Enterprise AI CI/CD
+name: Apex Enterprise AI CI/CD
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: atlas-deployment
+  group: apex-deployment
   cancel-in-progress: false
 
 jobs:
@@ -94,7 +94,7 @@ jobs:
     name: Continuous Deployment
     needs: build-and-push-ecr-image
 
-    runs-on: [self-hosted, linux, x64, atlas-ec2]
+    runs-on: [self-hosted, linux, x64, apex-ec2]
     environment: production
 
     steps:
@@ -219,7 +219,7 @@ jobs:
 
       - name: Stop Old Container
         run: |
-          docker rm -f atlas-enterprise-ai || true
+          docker rm -f apex-enterprise-ai || true
 
       # ----------------------------------------
       # START NEW CONTAINER WITH GITHUB SECRETS
@@ -265,7 +265,7 @@ jobs:
           set -euo pipefail
 
           docker run -d \
-            --name atlas-enterprise-ai \
+            --name apex-enterprise-ai \
             --restart unless-stopped \
             -e AWS_ACCESS_KEY_ID \
             -e AWS_SECRET_ACCESS_KEY \
@@ -302,10 +302,10 @@ jobs:
 
           if ! docker inspect \
             -f '{{.State.Running}}' \
-            atlas-enterprise-ai | grep -qx true; then
+            apex-enterprise-ai | grep -qx true; then
 
             echo "::error::Container is not running"
-            docker logs --tail 100 atlas-enterprise-ai
+            docker logs --tail 100 apex-enterprise-ai
             exit 1
           fi
 
@@ -315,7 +315,7 @@ jobs:
             http://127.0.0.1:8000/ \
             > /dev/null
 
-          echo "Atlas Enterprise AI deployed successfully"
+          echo "Apex Enterprise AI deployed successfully"
 
       # ----------------------------------------
       # CLEANUP
