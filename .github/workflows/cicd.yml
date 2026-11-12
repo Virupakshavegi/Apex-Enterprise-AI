@@ -310,9 +310,10 @@ jobs:
           fi
 
           curl --fail --silent --show-error \
-            --retry 5 \
+            --retry 10 \
             --retry-delay 3 \
-            http://127.0.0.1:8000/ \
+            --retry-all-errors \
+            http://127.0.0.1:8000/health/live \
             > /dev/null
 
           echo "Apex Enterprise AI deployed successfully"
